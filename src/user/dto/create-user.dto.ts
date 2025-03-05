@@ -4,7 +4,21 @@ export class CreateUserDto {
   @IsString()
   @IsNotEmpty()
   username: string;
-  
+
+  @IsEmail()
+  @IsNotEmpty()
+  email: string;
+
+  @IsString()
+  @IsNotEmpty()
+  password: string;
+}
+
+export class CreateUserByAdminDto {
+  @IsString()
+  @IsNotEmpty()
+  username: string;
+
   @IsEmail()
   @IsNotEmpty()
   email: string;
@@ -13,6 +27,7 @@ export class CreateUserDto {
   @IsNotEmpty()
   password: string;
 
-  created_at: Date
-
+  @IsString()
+  @IsNotEmpty()
+  roles: string;
 }

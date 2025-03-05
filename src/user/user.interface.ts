@@ -3,14 +3,18 @@ export interface UserData {
   username: string;
   email: string;
   roles: string;
-  token?: string;
+  accessToken?: string;
+  refreshToken?: string;
+  created_at: Date;
 }
 
 export interface UserRO {
-  user: UserData;
+  data: UserData;
+  message: string;
+  statusCode: number;
 }
 
 export interface UserDecoratorOptions {
-  field?: keyof UserData; 
-  roles?: string[]; 
+  field?: keyof UserData;
+  roles?: string[];
 }

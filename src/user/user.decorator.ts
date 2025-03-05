@@ -1,47 +1,53 @@
-import { createParamDecorator, ExecutionContext, ForbiddenException } from '@nestjs/common';
+import {
+  createParamDecorator,
+  ExecutionContext,
+  ForbiddenException,
+  UnauthorizedException,
+} from '@nestjs/common';
+import { Request } from 'express';
 import * as jwt from 'jsonwebtoken';
-const SECRET = "NguyenDeptrai"
 import { UserData, UserDecoratorOptions } from './user.interface';
-
-
+import { SECRET } from 'src/config';
 
 export const User = createParamDecorator(
   (data: UserDecoratorOptions | undefined, ctx: ExecutionContext) => {
-    const req = ctx.switchToHttp().getRequest();
+    const req = ctx.switchToHttp().getRequest<Request>();
+    let user: UserData | null = null;
 
-    let user: UserData | null  = null;
-
-    // Lấy user từ middleware (nếu có)
-    if (req.user) {
+    if ('user' in req) {
       user = req.user as UserData;
-
     } else {
-      // Nếu chưa có user, kiểm tra trong JWT token
-      const token = req.headers.authorization ? (req.headers.authorization as string).split(' ') : null;
-      if (token && token[1]) {
+      const authHeader = req.headers.authorization;
+
+      if (authHeader && authHeader.startsWith('Bearer ')) {
+        const token = authHeader.substring(7);
         try {
-          const decoded: any = jwt.verify(token[1], SECRET);
-          user = decoded.user;
+          const decoded = jwt.verify(token, SECRET);
+          user = decoded as UserData;
         } catch (err) {
-          throw new ForbiddenException('Invalid token');
+          console.log(err);
+          throw new UnauthorizedException('Invalid token');
         }
       }
     }
 
-    // Nếu không tìm thấy user => Không được phép truy cập
     if (!user) {
-      throw new ForbiddenException('User not authenticated');
+      throw new UnauthorizedException('User not authenticated');
     }
-     // 🔥 Sửa lỗi TypeScript khi kiểm tra quyền
     if (data?.roles && data.roles.length > 0) {
-      const userRoles = user.roles.split(',')
-      const hasRole = userRoles.some((role: string) => data.roles?.includes(role));
+      const userRoles = Array.isArray(user.roles)
+        ? user.roles
+        : user.roles.split(',');
+      const hasRole = userRoles.some((role: string) =>
+        data.roles?.includes(role),
+      );
       if (!hasRole) {
-        throw new ForbiddenException('You do not have permission to access this resource');
+        throw new ForbiddenException(
+          'You do not have permission to access this resource',
+        );
       }
     }
 
-    // Trả về thông tin user hoặc một trường cụ thể nếu có yêu cầu (vd: 'id')
     return data?.field ? user[data.field] : user;
-  }
+  },
 );

@@ -3,7 +3,7 @@ import { NestMiddleware, HttpStatus, Injectable } from '@nestjs/common';
 import { Response, NextFunction } from 'express';
 import * as jwt from 'jsonwebtoken';
 import { SECRET } from '../config';
-import { UserService } from './user.service';
+import { UserService } from '../user/user.service';
 import { AuthRequest } from './auth-request.interface';
 
 @Injectable()
