@@ -7,18 +7,19 @@ import {
   NotFoundException,
   UnauthorizedException,
 } from '@nestjs/common';
-import { CreateUserByAdminDto, CreateUserDto } from './dto/create-user.dto';
+import { CreateUserDto } from './dto/create-user.dto';
+import { CreateUserByAdminDto } from './dto/create-user-by-admin.dto';
 import * as jwt from 'jsonwebtoken';
 import { InjectRepository } from '@nestjs/typeorm';
 import { In, Repository } from 'typeorm';
 import { User } from './entities/user.entity';
 import { UserData, UserRO } from './user.interface';
 import { validate } from 'class-validator';
-import { SECRET } from 'src/config';
+import { SECRET } from '../config';
 import { LoginUserDto, UpdateUserDto } from './dto';
 import * as argon2 from 'argon2';
-import { Roles } from 'src/config/user.config';
-import { UpdateUserByAdminDto } from './dto/update-user.dto';
+import { Roles } from '../config/user.config';
+import { UpdateUserByAdminDto } from './dto/update-user-by-admin.dto';
 
 @Injectable()
 export class UserService {

@@ -6,10 +6,10 @@ import { Repository } from 'typeorm';
 import { ProjectData, ProjectRO } from './project.interface';
 import { validate } from 'class-validator';
 import { InjectRepository } from '@nestjs/typeorm';
-import { UserService } from 'src/user/user.service';
-import { Status_Project } from 'src/config/project.config';
+import { UserService } from '../user/user.service';
+import { Status_Project } from '../config/project.config';
 import { UpdateUserProjectDto } from './dto/update-user-project';
-import { User } from 'src/user/entities/user.entity';
+import { User } from '../user/entities/user.entity';
 
 @Injectable()
 export class ProjectService {

@@ -7,7 +7,7 @@ import {
 import { Request } from 'express';
 import * as jwt from 'jsonwebtoken';
 import { UserData, UserDecoratorOptions } from './user.interface';
-import { SECRET } from 'src/config';
+import { SECRET } from '../config';
 
 export const User = createParamDecorator(
   (data: UserDecoratorOptions | undefined, ctx: ExecutionContext) => {

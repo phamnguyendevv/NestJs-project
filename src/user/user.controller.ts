@@ -12,14 +12,15 @@ import {
   Param,
 } from '@nestjs/common';
 import { UserService } from './user.service';
-import { CreateUserByAdminDto, CreateUserDto } from './dto/create-user.dto';
+import { CreateUserDto } from './dto/create-user.dto';
+import { CreateUserByAdminDto } from './dto/create-user-by-admin.dto';
 import { User } from './user.decorator';
 
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 import { UserRO } from './user.interface';
 import { LoginUserDto } from './dto/login-user.dto';
 import { UpdateUserDto } from './dto';
-import { UpdateUserByAdminDto } from './dto/update-user.dto';
+import { UpdateUserByAdminDto } from './dto/update-user-by-admin.dto';
 
 @ApiBearerAuth()
 @ApiTags('users')

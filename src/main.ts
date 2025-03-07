@@ -2,10 +2,14 @@ import { NestFactory } from '@nestjs/core';
 import { AppModule } from './app.module';
 import { SwaggerModule, DocumentBuilder } from '@nestjs/swagger';
 import { ValidationPipe, Logger } from '@nestjs/common';
+import helmet from 'helmet';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule, { cors: true });
 
+  // Security
+  app.use(helmet());
+  app.enableCors();
   // ✅ Đặt tiền tố API
   app.setGlobalPrefix('api');
 

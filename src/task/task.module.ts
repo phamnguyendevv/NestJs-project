@@ -1,13 +1,34 @@
-import { Module } from '@nestjs/common';
+import {
+  MiddlewareConsumer,
+  Module,
+  NestModule,
+  RequestMethod,
+} from '@nestjs/common';
 import { TaskService } from './task.service';
 import { TaskController } from './task.controller';
 import { Task } from './entities/task.entity';
 import { TypeOrmModule } from '@nestjs/typeorm';
+import { UserModule } from '../user/user.module';
+import { ProjectModule } from '../project/project.module';
+import { AuthMiddleware } from '../user/auth.middleware';
+import { UploadModule } from 'upload/upload.module';
 
 @Module({
-  imports: [TypeOrmModule.forFeature([Task])],
+  imports: [
+    TypeOrmModule.forFeature([Task]),
+    UserModule,
+    ProjectModule,
+    UploadModule,
+  ],
   controllers: [TaskController],
   providers: [TaskService],
   exports: [TaskService],
 })
-export class TaskModule {}
+export class TaskModule implements NestModule {
+  public configure(consumer: MiddlewareConsumer) {
+    consumer.apply(AuthMiddleware).forRoutes({
+      path: 'task',
+      method: RequestMethod.GET,
+    });
+  }
+}
