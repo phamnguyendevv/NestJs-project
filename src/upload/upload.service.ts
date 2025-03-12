@@ -11,6 +11,10 @@ import type {
 } from './interfaces/cloudinary-response.interface';
 import streamifier from 'streamifier';
 import sharp from 'sharp';
+import { diskStorage } from 'multer';
+import path from 'path';
+
+const UPLOAD_DIR = path.join(__dirname, '../../uploads');
 
 @Injectable()
 export class UploadService {
@@ -162,4 +166,32 @@ export class UploadService {
       );
     }
   }
+
+  static multerOptions = {
+    storage: diskStorage({
+      destination: (req, file, cb) => {
+        cb(null, UPLOAD_DIR);
+      },
+      filename: (req, file, cb) => {
+        const timestamp = Date.now();
+        const ext = path.extname(file.originalname);
+        const name = path.basename(file.originalname, ext);
+        cb(null, `${name}-${timestamp}${ext}`);
+      },
+    }),
+    fileFilter: (
+      req: Request,
+      file: Express.Multer.File,
+      cb: (error: Error | null, acceptFile: boolean) => void,
+    ) => {
+      if (file.mimetype.startsWith('image/')) {
+        cb(null, true);
+      } else {
+        cb(new Error('Only image files are allowed!'), false);
+      }
+    },
+    limits: {
+      fileSize: 20 * 1024 * 1024, // 20MB
+    },
+  };
 }

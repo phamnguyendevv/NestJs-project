@@ -53,9 +53,9 @@ export class UserService {
     newUser.username = username;
     newUser.email = email;
     newUser.password = password;
-    newUser.refresh_token = this.generateRefreshToken(newUser);
     newUser.roles = Roles.User;
     newUser.created_at = new Date();
+    newUser.refresh_token = this.generateRefreshToken(newUser);
 
     const errors = await validate(newUser);
     if (errors.length > 0) {
@@ -281,6 +281,30 @@ export class UserService {
     return user;
   }
 
+  async refreshToken(refreshToken: string): Promise<UserRO> {
+    const user = this.decodeToken(refreshToken);
+    if (!user) {
+      throw new UnauthorizedException('Invalid token');
+    }
+    const users = await this.userRepo.findOne({ where: { email: user.email } });
+    if (!users) {
+      throw new UnauthorizedException('Invalid token');
+    }
+    return {
+      data: {
+        id: users.id,
+        username: users.username,
+        email: users.email,
+        roles: users.roles,
+        accessToken: this.generateAccessToken(users),
+        refreshToken: refreshToken,
+        created_at: users.created_at,
+      },
+      statusCode: 200,
+      message: 'Token refreshed',
+    };
+  }
+
   public generateAccessToken(user: User): string {
     const today = new Date();
     const exp = new Date(today);
@@ -315,6 +339,10 @@ export class UserService {
       },
       SECRET,
     );
+  }
+
+  public decodeToken(token: string): UserData {
+    return jwt.verify(token, SECRET) as UserData;
   }
 
   private buildUserRO(user: User): UserRO {

@@ -12,6 +12,8 @@ import { UploadModule } from './upload/upload.module';
 import { APP_GUARD } from '@nestjs/core';
 import { CacheModule } from '@nestjs/cache-manager';
 import { redisStore } from 'cache-manager-redis-yet';
+import { CommentModule } from './comment/comment.module';
+import { NotificationModule } from './notification/notification.module';
 
 @Module({
   imports: [
@@ -53,6 +55,8 @@ import { redisStore } from 'cache-manager-redis-yet';
     ProjectModule,
     TaskModule,
     UploadModule,
+    CommentModule,
+    NotificationModule,
   ],
   controllers: [AppController],
   providers: [

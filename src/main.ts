@@ -2,10 +2,18 @@ import { NestFactory } from '@nestjs/core';
 import { AppModule } from './app.module';
 import { SwaggerModule, DocumentBuilder } from '@nestjs/swagger';
 import { ValidationPipe, Logger } from '@nestjs/common';
+import { promises as fs } from 'fs';
 import helmet from 'helmet';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule, { cors: true });
+
+  // Tạo thư mục uploads nếu chưa tồn tại
+  try {
+    await fs.mkdir('./uploads', { recursive: true });
+  } catch (error) {
+    console.error('Failed to create uploads directory', error);
+  }
 
   // Security
   app.use(helmet());

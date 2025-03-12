@@ -3,10 +3,3 @@ export const Roles = {
   User: 'User',
   SuperUser: 'SuperUser',
 };
-
-export const Status_Task = {
-  Active: 'Active',
-  Inactive: 'Inactive',
-  Completed: 'Completed',
-  Cancelled: 'Cancelled',
-};

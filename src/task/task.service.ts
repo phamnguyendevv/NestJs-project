@@ -3,14 +3,15 @@ import { CreateTaskDto } from './dto/create-task.dto';
 import { UpdateTaskDto } from './dto/update-task.dto';
 import { DataSource, Repository } from 'typeorm';
 import { InjectRepository } from '@nestjs/typeorm';
-import { ImageStatus, Task } from './entities/task.entity';
+import { Task } from './entities/task.entity';
 import { UserService } from '../user/user.service';
 import { ProjectService } from '../project/project.service';
 import { validate } from 'class-validator';
 import { UploadService } from 'upload/upload.service';
 import { FindTaskDto } from './dto/find-task.dto';
 import { Roles } from 'config/user.config';
-
+import { Status_Task } from 'config/task.config';
+import { TaskData, TaskRO } from './task.interface';
 @Injectable()
 export class TaskService {
   private readonly logger = new Logger(TaskService.name);
@@ -24,9 +25,11 @@ export class TaskService {
   ) {}
 
   async create(createTaskDto: CreateTaskDto): Promise<any> {
-    const { user_id, project_id } = createTaskDto;
+    const { userId, projectId } = createTaskDto;
 
-    const user = await this.userService.findById(user_id);
+    createTaskDto = { ...createTaskDto, status: Status_Task.Todo };
+
+    const user = await this.userService.findById(userId);
     if (!user) {
       throw new HttpException(
         {
@@ -37,7 +40,7 @@ export class TaskService {
       );
     }
 
-    const project = await this.projectService.findOne(project_id);
+    const project = await this.projectService.findOne(projectId);
     if (!project) {
       throw new HttpException(
         {
@@ -50,12 +53,15 @@ export class TaskService {
 
     const task = this.taskRepo.create({
       ...createTaskDto,
-      user: { id: user_id },
-      project: { id: project_id },
+      user: { id: userId },
+      project: { id: projectId },
     });
 
     const errors = await validate(task);
     if (errors.length > 0) {
+      this.logger.error(
+        `Input data validation failed: ${JSON.stringify(errors)}`,
+      );
       throw new HttpException(
         {
           message: 'Input data validation failed',
@@ -70,79 +76,6 @@ export class TaskService {
         data: saveTask,
         statusCode: 200,
       };
-    }
-  }
-
-  async createWithImages(
-    createTaskDto: CreateTaskDto,
-    file: Express.Multer.File,
-  ): Promise<any> {
-    const { user_id, project_id } = createTaskDto;
-    // Bắt đầu transaction
-    const queryRunner = this.dataSource.createQueryRunner();
-    await queryRunner.connect();
-    await queryRunner.startTransaction();
-    let uploadResult: { secure_url: string; public_id: string } | null = null;
-
-    try {
-      const task = new Task();
-      Object.assign(task, {
-        ...createTaskDto,
-        user: { id: user_id },
-        project: { id: project_id },
-        imageStatus: ImageStatus.PROCESSING,
-      });
-      const savedTask = await queryRunner.manager.save(task);
-
-      // 2. Upload ảnh
-      uploadResult = await this.uploadService.uploadImage(file, 'tasks');
-
-      // 3. Cập nhật task với thông tin ảnh
-      savedTask.imageUrl = uploadResult.secure_url;
-      savedTask.imageThumbnailUrl = uploadResult.secure_url;
-      savedTask.imagePublicId = uploadResult.public_id;
-      savedTask.imageStatus = ImageStatus.COMPLETED;
-
-      const updatedTask = await queryRunner.manager.save(savedTask);
-      // Commit transaction
-      await queryRunner.commitTransaction();
-
-      return {
-        data: updatedTask,
-        message: 'Task created successfully',
-        statusCode: 200,
-      };
-    } catch (error) {
-      const err = error as Error;
-
-      // Rollback transaction nếu đã bắt đầu
-      if (queryRunner.isTransactionActive) {
-        await queryRunner.rollbackTransaction();
-      }
-      if (uploadResult) {
-        try {
-          await this.uploadService.deleteImage(uploadResult.public_id);
-        } catch (deleteError) {
-          const err = deleteError as Error;
-          this.logger.error(
-            `Failed to delete image after task creation error: ${err.message}`,
-            err.stack,
-          );
-        }
-      }
-
-      this.logger.error(`Failed to create task: ${err.message}`, err.stack);
-
-      throw new HttpException(
-        {
-          message: 'Failed to create task',
-          error: err.message,
-        },
-        HttpStatus.BAD_REQUEST,
-      );
-    } finally {
-      // Close transaction
-      await queryRunner.release();
     }
   }
 
@@ -191,27 +124,110 @@ export class TaskService {
     }
   }
 
-  async findOne(id: number) {
-    const task = await this.taskRepo.findOne({ where: { id } });
+  async findOne(id: number): Promise<TaskRO> {
+    try {
+      // Cách 1: Sử dụng relations - đơn giản và hiệu quả hơn
+      const task = await this.taskRepo.findOne({
+        where: { id },
+        relations: ['user', 'project'],
+        select: {
+          user: { id: true },
+          project: { id: true },
+        },
+      });
+
+      if (!task) {
+        throw new HttpException(
+          {
+            message: 'Task not found.',
+            statusCode: HttpStatus.NOT_FOUND,
+          },
+          HttpStatus.NOT_FOUND,
+        );
+      }
+
+      // Chuyển đổi dữ liệu để phù hợp với định dạng mong muốn
+      const response = {
+        ...task,
+        userId: task.user?.id,
+        projectId: task.project?.id,
+      } as TaskData;
+
+      // Xóa các thuộc tính không cần thiết nếu muốn
+      delete response.user;
+      delete response.project;
+
+      return {
+        data: response,
+        message: 'Get task successfully.',
+        statusCode: 200,
+      };
+    } catch (error) {
+      // Xử lý lỗi chung
+      if (error instanceof HttpException) {
+        throw error;
+      }
+      throw new HttpException(
+        {
+          message: 'An error occurred while fetching the task.',
+          statusCode: HttpStatus.INTERNAL_SERVER_ERROR,
+        },
+        HttpStatus.INTERNAL_SERVER_ERROR,
+      );
+    }
+  }
+
+  async update(id: number, updateTaskDto: UpdateTaskDto) {
+    const taskRO = await this.findOne(id);
+    const task = taskRO.data;
 
     if (!task) {
       throw new HttpException(
-        {
-          message: 'Task not found.',
-          statusCode: HttpStatus.BAD_REQUEST,
-        },
-        HttpStatus.BAD_REQUEST,
+        { message: 'Task not found.', statusCode: HttpStatus.NOT_FOUND },
+        HttpStatus.NOT_FOUND,
       );
     }
-    return {
-      data: task,
-      message: 'Get task successfully.',
-      statusCode: 200,
-    };
-  }
+    // Check if the user exists (optional if userId is updatable)
+    if (updateTaskDto.userId) {
+      const user = await this.userService.findById(updateTaskDto.userId);
+      if (!user) {
+        throw new HttpException(
+          { message: 'User not found.', statusCode: HttpStatus.BAD_REQUEST },
+          HttpStatus.BAD_REQUEST,
+        );
+      }
+    }
 
-  update(id: number, updateTaskDto: UpdateTaskDto) {
-    return `This action updates a #${id} task`;
+    // Validate and update fields
+    task.title = updateTaskDto.title ?? task.title;
+    task.descriptionText =
+      updateTaskDto.descriptionText ?? task.descriptionText;
+    task.descriptionImage =
+      updateTaskDto.descriptionImage ?? task.descriptionImage;
+    task.status = updateTaskDto.status ?? task.status;
+
+    // Ensure valid date formats
+    if (updateTaskDto.startDate) {
+      const parsedStartDate = new Date(updateTaskDto.startDate);
+      if (!isNaN(parsedStartDate.getTime())) {
+        task.startDate = parsedStartDate;
+      }
+    }
+
+    if (updateTaskDto.endDate) {
+      const parsedEndDate = new Date(updateTaskDto.endDate);
+      if (!isNaN(parsedEndDate.getTime())) {
+        task.endDate = parsedEndDate;
+      }
+    }
+    // Save the updated task
+    await this.taskRepo.save(task);
+
+    return {
+      message: 'Task updated successfully.',
+      statusCode: 200,
+      data: task,
+    };
   }
 
   async remove(id: number) {
@@ -229,6 +245,28 @@ export class TaskService {
     }
     return {
       message: 'Task deleted successfully.',
+      statusCode: 200,
+    };
+  }
+
+  private buildTaskRO(task: Task): TaskRO {
+    const taskData: TaskData = {
+      id: task.id,
+      title: task.title,
+      descriptionText: task.descriptionText,
+      descriptionImage: task.descriptionImage,
+      status: task.status,
+      startDate: task.startDate,
+      endDate: task.endDate,
+      createdAt: task.createdAt,
+      updatedAt: task.updatedAt,
+      userId: task.user.id,
+      projectId: task.project.id,
+    };
+
+    return {
+      data: taskData,
+      message: 'Task find successfully',
       statusCode: 200,
     };
   }

@@ -1,4 +1,5 @@
 import {
+  forwardRef,
   MiddlewareConsumer,
   Module,
   NestModule,
@@ -11,7 +12,8 @@ import { TypeOrmModule } from '@nestjs/typeorm';
 import { UserModule } from '../user/user.module';
 import { ProjectModule } from '../project/project.module';
 import { AuthMiddleware } from '../user/auth.middleware';
-import { UploadModule } from 'upload/upload.module';
+import { UploadModule } from '../upload/upload.module';
+import { CommentModule } from '../comment/comment.module';
 
 @Module({
   imports: [
@@ -19,6 +21,7 @@ import { UploadModule } from 'upload/upload.module';
     UserModule,
     ProjectModule,
     UploadModule,
+    forwardRef(() => CommentModule),
   ],
   controllers: [TaskController],
   providers: [TaskService],

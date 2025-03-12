@@ -9,6 +9,7 @@ import { UserController } from './user.controller';
 import { User } from './entities/user.entity';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { AuthMiddleware } from './auth.middleware';
+// import { CommentModule } from 'comment/comment.module';
 
 @Module({
   imports: [TypeOrmModule.forFeature([User])],

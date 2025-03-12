@@ -6,15 +6,11 @@ import {
   Patch,
   Param,
   Delete,
-  UseInterceptors,
-  BadRequestException,
-  UploadedFile,
 } from '@nestjs/common';
 import { TaskService } from './task.service';
 import { CreateTaskDto } from './dto/create-task.dto';
 import { UpdateTaskDto } from './dto/update-task.dto';
-import { ApiBody, ApiConsumes, ApiOperation } from '@nestjs/swagger';
-import { FileInterceptor } from '@nestjs/platform-express';
+import { ApiBody, ApiOperation } from '@nestjs/swagger';
 import { FindTaskDto } from './dto/find-task.dto';
 
 @Controller('task')
@@ -27,7 +23,6 @@ export class TaskController {
   // }
   @Post()
   @ApiOperation({ summary: 'Create a new task (with or without image)' })
-  @ApiConsumes('multipart/form-data')
   @ApiBody({
     schema: {
       type: 'object',
@@ -44,30 +39,7 @@ export class TaskController {
       required: ['title'],
     },
   })
-  @UseInterceptors(
-    FileInterceptor('image', {
-      // "images" là key trong request, tối đa 5 files
-      limits: {
-        fileSize: 5 * 1024 * 1024, // Giới hạn 5MB mỗi ảnh
-      },
-      fileFilter: (req, file, callback) => {
-        if (!file.originalname.match(/\.(jpg|jpeg|png|gif|webp)$/i)) {
-          return callback(
-            new BadRequestException('Only image files are allowed'),
-            false,
-          );
-        }
-        callback(null, true);
-      },
-    }),
-  )
-  createTask(
-    @Body() createTaskDto: CreateTaskDto,
-    @UploadedFile() file?: Express.Multer.File, // Upload nhiều file
-  ) {
-    if (file) {
-      return this.taskService.createWithImages(createTaskDto, file);
-    }
+  createTask(@Body('task') createTaskDto: CreateTaskDto) {
     return this.taskService.create(createTaskDto);
   }
 
@@ -82,7 +54,7 @@ export class TaskController {
   }
 
   @Patch(':id')
-  update(@Param('id') id: string, @Body() updateTaskDto: UpdateTaskDto) {
+  update(@Param('id') id: string, @Body('task') updateTaskDto: UpdateTaskDto) {
     return this.taskService.update(+id, updateTaskDto);
   }
 

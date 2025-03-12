@@ -8,11 +8,20 @@ import {
   FileTypeValidator,
   Body,
   UploadedFiles,
+  Get,
+  Param,
+  Res,
+  NotFoundException,
 } from '@nestjs/common';
 import { FileInterceptor, FilesInterceptor } from '@nestjs/platform-express';
 import { UploadService } from './upload.service';
 import { ApiTags, ApiConsumes, ApiBody, ApiOperation } from '@nestjs/swagger';
 import { Express } from 'express';
+import { Response } from 'express';
+import path from 'path';
+import fs from 'fs';
+
+const UPLOAD_DIR = path.join(__dirname, '../../uploads');
 
 @ApiTags('uploads')
 @Controller('uploads')
@@ -88,5 +97,25 @@ export class UploadController {
     @Body('folder') folder: string = 'default',
   ) {
     return this.uploadService.uploadMultipleImages(files, folder);
+  }
+
+  @Post('multiples')
+  @UseInterceptors(FilesInterceptor('files', 5, UploadService.multerOptions))
+  uploadMultiple(@UploadedFiles() files: Array<Express.Multer.File>) {
+    return files.map((file) => ({
+      filename: file.filename,
+      path: file.path,
+    }));
+  }
+
+  @Get(':filename')
+  getImage(@Param('filename') filename: string, @Res() res: Response) {
+    const filePath = path.join(UPLOAD_DIR, filename);
+
+    if (!fs.existsSync(filePath)) {
+      throw new NotFoundException('Image not found');
+    }
+
+    res.sendFile(filePath);
   }
 }

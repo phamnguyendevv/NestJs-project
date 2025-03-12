@@ -74,7 +74,7 @@ export class UserController {
       username,
       roles,
       accessToken: accessToken,
-      refreshToken: _user.refresh_token,
+      refreshToken: this.userService.generateRefreshToken(_user),
       created_at: _user.created_at,
     };
     return { data: user, message: 'Login Success!', statusCode: 200 };
@@ -88,5 +88,12 @@ export class UserController {
   @Delete('users/:slug')
   async delete(@Param('slug') slug: number) {
     return await this.userService.delete(slug);
+  }
+
+  @Post('users/refresh-token')
+  async refreshToken(
+    @Body('refreshToken') refreshToken: string,
+  ): Promise<UserRO> {
+    return await this.userService.refreshToken(refreshToken);
   }
 }

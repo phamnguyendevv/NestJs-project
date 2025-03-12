@@ -10,6 +10,7 @@ import {
 import * as argon2 from 'argon2';
 import { Project } from './../../project/entities/project.entity';
 import { Task } from './../../task/entities/task.entity';
+import { Comment } from './../../comment/entities/comment.entity';
 @Entity()
 export class User {
   @PrimaryGeneratedColumn()
@@ -45,4 +46,8 @@ export class User {
   // One-to-Many: Một User có nhiều Task
   @OneToMany(() => Task, (task) => task.user)
   tasks: Task[];
+
+  // One-to-Many: Một User có nhiều Comment
+  @OneToMany(() => Comment, (comment) => comment.user)
+  comments: Comment[];
 }
