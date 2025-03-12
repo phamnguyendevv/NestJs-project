@@ -12,6 +12,8 @@ import { FindTaskDto } from './dto/find-task.dto';
 import { Roles } from 'config/user.config';
 import { Status_Task } from 'config/task.config';
 import { TaskData, TaskRO } from './task.interface';
+import { NotificationService } from 'notification/notification.service';
+import { NotificationType } from 'config/notification.config';
 @Injectable()
 export class TaskService {
   private readonly logger = new Logger(TaskService.name);
@@ -21,10 +23,12 @@ export class TaskService {
     private readonly userService: UserService,
     private readonly projectService: ProjectService,
     private readonly uploadService: UploadService,
+    private readonly notificationService: NotificationService,
     private dataSource: DataSource,
   ) {}
 
   async create(createTaskDto: CreateTaskDto): Promise<any> {
+    console.log(createTaskDto);
     const { userId, projectId } = createTaskDto;
 
     createTaskDto = { ...createTaskDto, status: Status_Task.Todo };
@@ -71,6 +75,11 @@ export class TaskService {
       );
     } else {
       const saveTask = await this.taskRepo.save(task);
+      await this.notificationService.create(
+        NotificationType.TASK_CREATED,
+        `Task ${saveTask.title} has been created.`,
+        saveTask.id.toString(),
+      );
       return {
         message: 'Task created successfully.',
         data: saveTask,
@@ -221,7 +230,13 @@ export class TaskService {
       }
     }
     // Save the updated task
-    await this.taskRepo.save(task);
+    const saveTask = await this.taskRepo.save(task);
+
+    await this.notificationService.create(
+      NotificationType.TASK_UPDATED,
+      `Task ${saveTask.title} has been updated.`,
+      saveTask.id.toString(),
+    );
 
     return {
       message: 'Task updated successfully.',
@@ -243,6 +258,12 @@ export class TaskService {
         HttpStatus.BAD_REQUEST,
       );
     }
+
+    await this.notificationService.create(
+      NotificationType.TASK_DELETED,
+      `Task ${id} has been deleted.`,
+      id.toString(),
+    );
     return {
       message: 'Task deleted successfully.',
       statusCode: 200,

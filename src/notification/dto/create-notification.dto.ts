@@ -1,1 +1,5 @@
-export class CreateNotificationDto {}
+export class CreateNotificationDto {
+  type: string;
+  message: string;
+  entityId: string;
+}

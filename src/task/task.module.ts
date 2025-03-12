@@ -14,6 +14,7 @@ import { ProjectModule } from '../project/project.module';
 import { AuthMiddleware } from '../user/auth.middleware';
 import { UploadModule } from '../upload/upload.module';
 import { CommentModule } from '../comment/comment.module';
+import { NotificationModule } from '../notification/notification.module';
 
 @Module({
   imports: [
@@ -22,6 +23,7 @@ import { CommentModule } from '../comment/comment.module';
     ProjectModule,
     UploadModule,
     forwardRef(() => CommentModule),
+    forwardRef(() => NotificationModule),
   ],
   controllers: [TaskController],
   providers: [TaskService],
